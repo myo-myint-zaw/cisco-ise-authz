@@ -1,7 +1,7 @@
 """
 Author: Myo Myint Zaw
-Purpose: Create Authorization Profiles and Rules on Cisco ISE
-Date: 12-Jul-2024
+Purpose: Delete Authorization Profiles and Rules on Cisco ISE
+Date: 17-Jul-2024
 """
 
 import sys
@@ -34,26 +34,6 @@ payload = []
 pol_id = {}
 
 
-def create_authz_profile(role_no, name, payload):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': AUTHORIZATION,
-    }
-
-    endpoint = "ers/config/authorizationprofile"
-    url = f"https://{ISE_HOST}:9060/{endpoint}"
-    r = requests.post(url, headers=headers, data=json.dumps(payload), verify=False)
-
-    status_code = r.status_code
-
-    if status_code == 201:
-        print(f" {role_no}. Successfully created the authorization profile - {name}")
-    else:
-        err_output = r.json()["ERSResponse"]["messages"][0]["title"]
-        print(f" {role_no}. Err: {err_output}")
-
-
 def get_policyid(policy_set_name):
     headers = {
         'Content-Type': 'application/json',
@@ -77,8 +57,7 @@ def get_policyid(policy_set_name):
         err_output = r.json()["message"]
         print(f"Err: {err_output}")
 
-
-def create_authz_rule(role_no, name, policyid, payload):
+def get_ruleid(policyid):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -87,15 +66,42 @@ def create_authz_rule(role_no, name, policyid, payload):
 
     endpoint = f"api/v1/policy/network-access/policy-set/{policyid}/authorization"
     url = f"https://{ISE_HOST}/{endpoint}"
-    r = requests.post(url, headers=headers, data=json.dumps(payload), verify=False)
+    r = requests.get(url, headers=headers, verify=False)
+    data = r.json()
 
     status_code = r.status_code
 
-    if status_code == 201:
-        print(f" {role_no}. Successfully created the authorization rule - {name}")
+    rule_id = {}
+    if status_code == 200:
+        for i in data["response"]:
+            name = i["rule"]["name"]
+            _id = i["rule"]["id"]
+            rule_id[name] = _id
+
+        return rule_id
+
     else:
         err_output = r.json()["message"]
-        print(f" {role_no}. Err: {err_output}")
+        print(f"Err: {err_output}")
+
+def del_authz_rule(role_no, name, policyid, ruleid):
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': AUTHORIZATION,
+    }
+
+    endpoint = f"api/v1/policy/network-access/policy-set/{policyid}/authorization/{ruleid}"
+    url = f"https://{ISE_HOST}/{endpoint}"
+    r = requests.delete(url, headers=headers, verify=False)
+
+    status_code = r.status_code
+
+    if status_code == 200:
+        print(f" {role_no}. Successfully deleted the authorization rule - {name}-Rule")
+    else:
+        err_output = r.json()["message"]
+        print(f" {role_no}. Err: [{name}-Rule] - {err_output}")
 
 
 def generate_globals(config_file):
@@ -149,40 +155,39 @@ def main(config_file):
 
 
     if SHEET_NAME == "Authz_Rule":
-        print(tabulate(data.iloc[START_RANGE - 1 :END_RANGE, [0,1,2,3,4,5,6]], headers="keys", tablefmt="psql", showindex=False))
-        to_confirm = input("Enter ok to create the above Authorization Rules: ").strip()
+        print(tabulate(data.iloc[START_RANGE - 1 :END_RANGE, [0,1,2]], headers="keys", tablefmt="psql", showindex=False))
+        to_confirm = input("Enter ok to delete the above Authorization Rules: ").strip()
         if to_confirm.lower() != "ok":
             sys.exit(-1)
         print("\n\n", "-" * 96)
         print("Processing... Please wait\n")
-
+        
         pol_set = set([])
+
         for i in data.values[START_RANGE - 1 :END_RANGE]:
-            rule_name, ext_grp_name1, ext_grp_name2 = i[2], i[3], i[4]
-            username1, username2, profile_name, dn1, dn2 = i[5], i[6], i[7], i[8], i[9]
-            gen_payload = NetdevAR(rule_name, ext_grp_name1, ext_grp_name2, username1, username2, profile_name, dn1, dn2).to_json()
-            
             pol_set.add(i[1])
 
-            payload_attr = {}
-            payload_attr["role_no"] = int(i[0])
-            payload_attr["pol_set_name"] = i[1]
-            payload_attr["rule_name"] = rule_name
-            payload_attr["r_payload"] = gen_payload
-
-            payload.append(payload_attr)
-
         for i in pol_set:
-            _id = policyid = get_policyid(i)
-            if _id != None:
-                pol_id[i] = _id
-            else:
-                print(f" Err: Policy set name not found - {i}")
+            _id = get_policyid(i)
+            pol_id[i] = _id
 
-        if policyid != None:
-            for i in payload:
-                pol_set_n = i["pol_set_name"]
-                create_authz_rule(i["role_no"], i["rule_name"], pol_id[pol_set_n], i["r_payload"])
+        rule_id = []
+        for k,v in pol_id.items():
+            all_id = get_ruleid(v)
+            for i in all_id:
+                rule_id.append(i)
+
+        print(rule_id)
+        for i in data.values[START_RANGE - 1 :END_RANGE]:
+            role_no = i[0]
+            pol_set_name = i[1]
+            rule_name = i[2]
+            
+            for i in rule_id:
+                print(i[rule_name])
+                #if i[rule_name] == rule_name:
+                    # del_authz_rule(role_no, rule_name, pol_id[pol_set_name], i["id"])
+                #print(role_no, rule_name, pol_id[pol_set_name], i[rule_name])
 
 
 if __name__ == "__main__":

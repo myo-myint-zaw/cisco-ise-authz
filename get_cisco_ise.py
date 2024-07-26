@@ -16,8 +16,8 @@ import numpy as np
 
 from tabulate import tabulate
 from requests.exceptions import ConnectionError
-from generate_payload_authz_profiles import NetdevAP
-from generate_payload_authz_rules import NetdevAR
+# from generate_payload_authz_profiles import NetdevAP
+# from generate_payload_authz_rules import NetdevAR
 
 requests.packages.urllib3.disable_warnings()
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -30,8 +30,8 @@ SHEET_NAME = None
 START_RANGE = 1
 END_RANGE = 100
 
-final_profiles = []
-final_az_rules = []
+az_profiles = []
+az_rules = []
 
 def get_profiles():
     headers = {
@@ -160,7 +160,6 @@ def main(config_file):
 
     if int(user_input) == 1:
         print("Getting...... authorization profiles name")
-
         profiles = get_profiles()
         az_profiles = []
 
@@ -179,26 +178,22 @@ def main(config_file):
             for attr in i["advancedAttributes"]:
                 f_profiles[attr["leftHandSideDictionaryAttribue"]["attributeName"]] = attr["rightHandSideAttribueValue"]["value"]
             
-            final_profiles.append(f_profiles)
+            az_profiles.append(f_profiles)
         
         print("Saving....... authorization profiles details to excel file")
-        df = pandas.DataFrame.from_dict(final_profiles)
+        df = pandas.DataFrame.from_dict(az_profiles)
         df.index = df.index + 1
         df.to_excel('existing_cisco_ise_authz_profile.xlsx', sheet_name='Authz_Profile') #index=False
-        print("Completed.... authorization profiles details have been saved to excel file: existing_cisco_ise_data.xlsx\n")
+        print("Completed.... authorization profiles details have been saved to excel file: existing_cisco_ise_authz_profile.xlsx\n")
 
     elif int(user_input) == 2:
         print("Getting...... authorization rules name")
-
         policyid = get_policyid()
-
         print("Getting...... authorization rules details")
-
         
         for k,v in policyid.items():
             rule_detail = get_authz_rules(v)
 
-            
             for i in rule_detail:
                 num = 0
                 az_rule = {}
@@ -216,14 +211,13 @@ def main(config_file):
                     attr_name = i["rule"]["condition"]["attributeName"] + str(1)
                     az_rule[attr_name] = i["rule"]["condition"]["attributeValue"]
 
-                final_az_rules.append(az_rule)
+                az_rules.append(az_rule)
             
-
         print("Saving....... authorization rules details to excel file")
-        df = pandas.DataFrame.from_dict(final_az_rules)
+        df = pandas.DataFrame.from_dict(az_rules)
         df.index = df.index + 1
         df.to_excel('existing_cisco_ise_authz_rules.xlsx', sheet_name='Authz_Rule') #index=False
-        print("Completed.... authorization rules details have been saved to excel file: existing_cisco_ise_data.xlsx\n")
+        print("Completed.... authorization rules details have been saved to excel file: existing_cisco_ise_authz_rules.xlsx\n")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 ---
 ise_device:
-  host_ip: 10.10.20.77
+  host_ip: 192.168.12.21 #10.10.20.77
   base64_auth: Basic bXlvOlBAc3N3MHJkMTIz
 excel:
   excel_file: ./cisco_ise_spreadsheet.xlsx
   sheet_name: Authz_Rule
   rows_range:
     start: 1
-    end: 6
+    end: 9
