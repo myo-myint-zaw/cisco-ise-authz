@@ -1,10 +1,12 @@
 ---
 ise_device:
   host_ip: 192.168.12.21 #10.10.20.77
-  base64_auth: Basic bXlvOlBAc3N3MHJkMTIz
+  base64_auth: Basic YWRtaW46UEBzc3cwcmQxMjM=
+
+# the following info is not required for retrieving data from Cisco ISE
 excel:
   excel_file: ./cisco_ise_spreadsheet.xlsx
-  sheet_name: Authz_Rule
+  sheet_name: Authz_Profile
   rows_range:
-    start: 1
-    end: 9
+    start: 101
+    end: 200

@@ -30,8 +30,8 @@ SHEET_NAME = None
 START_RANGE = 1
 END_RANGE = 100
 
-az_profiles = []
-az_rules = []
+f_az_profiles = []
+f_az_rules = []
 
 def get_profiles():
     headers = {
@@ -168,20 +168,19 @@ def main(config_file):
             prof_detail = get_profile_details(i["name"])
             if "default profile" not in prof_detail["description"].lower():
                 az_profiles.append(prof_detail)
-                #print(prof_detail)
-        
+
         for i in az_profiles:
             f_profiles = {}
             f_profiles["name"] = i["name"]
             f_profiles["id"] = i["id"]
             f_profiles["description"] = i["description"]
+
             for attr in i["advancedAttributes"]:
                 f_profiles[attr["leftHandSideDictionaryAttribue"]["attributeName"]] = attr["rightHandSideAttribueValue"]["value"]
-            
-            az_profiles.append(f_profiles)
+            f_az_profiles.append(f_profiles)
         
         print("Saving....... authorization profiles details to excel file")
-        df = pandas.DataFrame.from_dict(az_profiles)
+        df = pandas.DataFrame.from_dict(f_az_profiles)
         df.index = df.index + 1
         df.to_excel('existing_cisco_ise_authz_profile.xlsx', sheet_name='Authz_Profile') #index=False
         print("Completed.... authorization profiles details have been saved to excel file: existing_cisco_ise_authz_profile.xlsx\n")
@@ -202,6 +201,7 @@ def main(config_file):
                 az_rule["id"] = i["rule"]["id"]
                 az_rule["state"] = i["rule"]["state"]
                 az_rule["profile"] = i["profile"][0]
+
                 try:
                     for ii in i["rule"]["condition"]["children"]:
                         num += 1
@@ -211,10 +211,10 @@ def main(config_file):
                     attr_name = i["rule"]["condition"]["attributeName"] + str(1)
                     az_rule[attr_name] = i["rule"]["condition"]["attributeValue"]
 
-                az_rules.append(az_rule)
+                f_az_rules.append(az_rule)
             
         print("Saving....... authorization rules details to excel file")
-        df = pandas.DataFrame.from_dict(az_rules)
+        df = pandas.DataFrame.from_dict(f_az_rules)
         df.index = df.index + 1
         df.to_excel('existing_cisco_ise_authz_rules.xlsx', sheet_name='Authz_Rule') #index=False
         print("Completed.... authorization rules details have been saved to excel file: existing_cisco_ise_authz_rules.xlsx\n")

@@ -4,6 +4,7 @@ Purpose: Create Authorization Profiles and Rules on Cisco ISE
 Date: 12-Jul-2024
 """
 
+from asyncio import eager_task_factory
 import sys
 import json
 import warnings
@@ -50,8 +51,11 @@ def create_authz_profile(role_no, name, payload):
     if status_code == 201:
         print(f" {role_no}. Successfully created the authorization profile - {name}")
     else:
-        err_output = r.json()["ERSResponse"]["messages"][0]["title"]
-        print(f" {role_no}. Err: {err_output}")
+        # err_output = r.json()["ERSResponse"]["messages"][0]["title"]
+        # print(f" {role_no}. Err: {err_output}")
+        error_output = r.json()
+        print(error_output)
+    return status_code
 
 
 def get_policyid(policy_set_name):
@@ -145,7 +149,12 @@ def main(config_file):
             payload.append(payload_attr)
 
         for i in payload:
-            create_authz_profile(i["role_no"], i["rule_name"], i["r_payload"])
+            rcode = create_authz_profile(i["role_no"], i["rule_name"], i["r_payload"])
+            if rcode != 201:
+                print("Error")
+                break
+            
+            
 
 
     if SHEET_NAME == "Authz_Rule":
