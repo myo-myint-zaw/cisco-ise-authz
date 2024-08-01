@@ -7,17 +7,13 @@ Date: 25-Jul-2024
 import sys
 import json
 import warnings
-from pprint import pprint
 import yaml
 import click
 import pandas
 import requests
-import numpy as np
 
-from tabulate import tabulate
+from datetime import datetime
 from requests.exceptions import ConnectionError
-# from generate_payload_authz_profiles import NetdevAP
-# from generate_payload_authz_rules import NetdevAR
 
 requests.packages.urllib3.disable_warnings()
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -25,13 +21,13 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 #Global
 ISE_HOST = None
 AUTHORIZATION = None
-EXCEL_FILE = None
-SHEET_NAME = None
-START_RANGE = 1
-END_RANGE = 100
 
 f_az_profiles = []
 f_az_rules = []
+
+# Current date and time
+now = datetime.now()
+dt_string = now.strftime("%Y%b%d_%H%M%S")
 
 def get_profiles():
     headers = {
@@ -134,10 +130,6 @@ def generate_globals(config_file):
     global ISE_HOST, AUTHORIZATION, EXCEL_FILE, SHEET_NAME, START_RANGE, END_RANGE
     ISE_HOST = ise_info["ise_device"]["host_ip"].strip()
     AUTHORIZATION = ise_info["ise_device"]["base64_auth"].strip()
-    EXCEL_FILE = ise_info["excel"]["excel_file"].strip()
-    SHEET_NAME = ise_info["excel"]["sheet_name"].strip()
-    START_RANGE = ise_info["excel"]["rows_range"]["start"]
-    END_RANGE = ise_info["excel"]["rows_range"]["end"]
 
 @click.command()
 @click.option(
@@ -150,8 +142,8 @@ def generate_globals(config_file):
 def main(config_file):
     generate_globals(config_file)
     option = """\nYou are retrieving Cisco ISE configurations. The following options are available.
-     1) Authorization Profiles
-     2) Authorization Rules"""
+     1) Get Authorization Profiles
+     2) Get Authorization Rules"""
 
     print(option)
     user_input = input("\nPlease choose option 1 or 2 from the above menu and press enter: ")
@@ -172,7 +164,7 @@ def main(config_file):
         for i in az_profiles:
             f_profiles = {}
             f_profiles["name"] = i["name"]
-            f_profiles["id"] = i["id"]
+            # f_profiles["id"] = i["id"]
             f_profiles["description"] = i["description"]
 
             for attr in i["advancedAttributes"]:
@@ -182,8 +174,8 @@ def main(config_file):
         print("Saving....... authorization profiles details to excel file")
         df = pandas.DataFrame.from_dict(f_az_profiles)
         df.index = df.index + 1
-        df.to_excel('existing_cisco_ise_authz_profile.xlsx', sheet_name='Authz_Profile') #index=False
-        print("Completed.... authorization profiles details have been saved to excel file: existing_cisco_ise_authz_profile.xlsx\n")
+        df.to_excel(f'./output/existing_cisco_ise_authz_profile_{dt_string}.xlsx', sheet_name='Authz_Profile') #index=False
+        print(f"Completed.... the result has been saved to: ./output/existing_cisco_ise_authz_profile_{dt_string}.xlsx\n")
 
     elif int(user_input) == 2:
         print("Getting...... authorization rules name")
@@ -198,7 +190,7 @@ def main(config_file):
                 az_rule = {}
                 az_rule["pol_set_name"] = k
                 az_rule["name"] = i["rule"]["name"]
-                az_rule["id"] = i["rule"]["id"]
+                # az_rule["id"] = i["rule"]["id"]
                 az_rule["state"] = i["rule"]["state"]
                 az_rule["profile"] = i["profile"][0]
 
@@ -216,8 +208,8 @@ def main(config_file):
         print("Saving....... authorization rules details to excel file")
         df = pandas.DataFrame.from_dict(f_az_rules)
         df.index = df.index + 1
-        df.to_excel('existing_cisco_ise_authz_rules.xlsx', sheet_name='Authz_Rule') #index=False
-        print("Completed.... authorization rules details have been saved to excel file: existing_cisco_ise_authz_rules.xlsx\n")
+        df.to_excel(f'./output/existing_cisco_ise_authz_rules_{dt_string}.xlsx', sheet_name='Authz_Rule') #index=False
+        print(f"Completed.... the result has been saved to: ./output/existing_cisco_ise_authz_rules_{dt_string}.xlsx\n")
 
 
 if __name__ == "__main__":
